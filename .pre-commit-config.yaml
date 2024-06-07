@@ -1,0 +1,13 @@
+exclude: '\.(md|txt|json|meta|asmdef|adoc|uplugin|clang-format)$'
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  # Python
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
