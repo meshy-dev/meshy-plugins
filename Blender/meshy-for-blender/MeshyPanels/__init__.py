@@ -1,6 +1,7 @@
 import bpy
 from . import TextToTexturePanel
 from . import TextToModelPanel
+from . import AssetBroswer
 
 
 class APIKeySetting(bpy.types.AddonPreferences):
@@ -20,9 +21,11 @@ def register():
     bpy.utils.register_class(APIKeySetting)
     TextToTexturePanel.register()
     TextToModelPanel.register()
+    AssetBroswer.register()
 
 
 def unregister():
+    AssetBroswer.unregister()
     TextToModelPanel.unregister()
     TextToTexturePanel.unregister()
     bpy.utils.unregister_class(APIKeySetting)
