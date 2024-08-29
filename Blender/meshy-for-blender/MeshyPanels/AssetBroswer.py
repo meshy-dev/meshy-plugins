@@ -45,7 +45,12 @@ class MeshyApi:
     def fetch_model_data(self, page_num=1, search_query=""):
         """Fetch model data from the Meshy API."""
         base_url = "https://api.meshy.ai/public/showcases"
-        params = {"pageNum": page_num, "pageSize": 20, "search": search_query, "sortBy": "-public_popularity"}
+        params = {
+            "pageNum": page_num,
+            "pageSize": 20,
+            "search": search_query,
+            "sortBy": "-public_popularity",
+        }
 
         response = requests.get(base_url, params=params)
         if response.status_code == 200:
