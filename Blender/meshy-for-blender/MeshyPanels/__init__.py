@@ -19,13 +19,13 @@ class APIKeySetting(bpy.types.AddonPreferences):
 
 def register():
     bpy.utils.register_class(APIKeySetting)
+    AssetBroswer.register()
     TextToTexturePanel.register()
     TextToModelPanel.register()
-    AssetBroswer.register()
 
 
 def unregister():
-    AssetBroswer.unregister()
     TextToModelPanel.unregister()
     TextToTexturePanel.unregister()
+    AssetBroswer.unregister()
     bpy.utils.unregister_class(APIKeySetting)
