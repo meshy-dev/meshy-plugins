@@ -1,7 +1,7 @@
 import json
 import bpy
 import tempfile
-from .Utils import GetApiKey
+from .Utils import get_api_key
 import requests
 import os
 
@@ -9,8 +9,8 @@ T2T_URL = "https://api.meshy.ai/v1/text-to-texture"
 taskList = []
 
 
-# Submit a task
-class SubmitTaskToRemote(bpy.types.Operator):
+# Submit task
+class SendSubmitRequest(bpy.types.Operator):
     bl_label = "Submit Task"
     bl_idname = "t2t.submit_task"
 
@@ -43,10 +43,10 @@ class SubmitTaskToRemote(bpy.types.Operator):
                 "enable_pbr": context.scene.t2t_enable_PBR,
                 "negative_prompt": context.scene.t2t_negative_prompt,
                 "resolution": context.scene.t2t_resolution,
-                "art_style": context.scene.t2t_art_syle,
+                "art_style": context.scene.t2t_art_style,
                 "name": context.scene.t2t_task_name,
             }
-            headers = {"Authorization": f"Bearer {GetApiKey()}"}
+            headers = {"Authorization": f"Bearer {get_api_key()}"}
             response = requests.post(
                 T2T_URL,
                 files={
@@ -66,13 +66,13 @@ class SubmitTaskToRemote(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# Refresh the task list
+# Refresh task list
 class RefreshTaskList(bpy.types.Operator):
     bl_label = "Refresh Task List"
     bl_idname = "t2t.refresh_task_list"
 
     def refreshOnePage(self, context):
-        headers = {"Authorization": f"Bearer {GetApiKey()}"}
+        headers = {"Authorization": f"Bearer {get_api_key()}"}
 
         response = requests.get(T2T_URL + "?sortBy=-created_at", headers=headers)
 
@@ -89,7 +89,7 @@ class RefreshTaskList(bpy.types.Operator):
 
 
 # Download the model
-class AcquireResultsFromRemote(bpy.types.Operator):
+class DownloadModel(bpy.types.Operator):
     bl_label = "Download Model"
     bl_idname = "t2t.download_model"
     downloadPath: bpy.props.StringProperty(name="download path", default="")
@@ -107,8 +107,8 @@ class AcquireResultsFromRemote(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# Text to Texture panel
-class TextToTexturePanel(bpy.types.Panel):
+# Create text to texture GUI
+class MeshyTextToTexture(bpy.types.Panel):
     bl_idname = "MESHY_PT_text_to_texture"
     bl_label = "Text To Texture"
     bl_space_type = "VIEW_3D"
@@ -118,75 +118,110 @@ class TextToTexturePanel(bpy.types.Panel):
     # Draw the panel UI
     def draw(self, context):
         layout = self.layout
-        column = layout.column()
-        column.label(text="Object Prompt:")
-        column.prop(context.scene, "t2t_object_prompt", text="")
-        column.label(text="Style Prompt:")
-        column.prop(context.scene, "t2t_style_prompt", text="")
-        column.prop(context.scene, "t2t_enable_original_UV", text="Enable Orginal UV")
-        column.prop(context.scene, "t2t_enable_PBR", text="Enable PBR")
-        column.label(text="Negative Prompt:")
-        column.prop(context.scene, "t2t_negative_prompt", text="")
-        column.label(text="Task Name:")
-        column.prop(context.scene, "t2t_task_name", text="")
-        column.label(text="Resolution:")
-        column.prop(context.scene, "t2t_resolution", text="")
-        column.label(text="Art Style:")
-        column.prop(context.scene, "t2t_art_syle", text="")
-        column.operator(SubmitTaskToRemote.bl_idname, text="Submit Task")
-        column.operator(RefreshTaskList.bl_idname, text="Refresh Task List")
 
-        if len(taskList) == 0:
-            return
+        # Display a collapsible box for task generation settings
+        col = layout.box().column(align=True)
+        row = col.row()
+        row.prop(
+            context.scene,
+            "t2t_expanded_task_settings",
+            icon=(
+                "TRIA_DOWN"
+                if context.scene.t2t_expanded_task_settings
+                else "TRIA_RIGHT"
+            ),
+            icon_only=True,
+            emboss=False,
+        )
+        row.label(text="Generation Settings")
+        if context.scene.t2t_expanded_task_settings:
+            col.label(text="Object Prompt:")
+            col.prop(context.scene, "t2t_object_prompt", text="")
+            col.label(text="Style Prompt:")
+            col.prop(context.scene, "t2t_style_prompt", text="")
 
-        def create_col(header: str, content_key: str):
-            col = split.column()
-            col.label(text=header)
+            row = col.row()
+            row.prop(context.scene, "t2t_enable_original_UV", text="Enable Orginal UV")
+            row.prop(context.scene, "t2t_enable_PBR", text="Enable PBR")
+
+            col.label(text="Negative Prompt:")
+            col.prop(context.scene, "t2t_negative_prompt", text="")
+            col.separator()
+            col.prop(context.scene, "t2t_task_name")
+            col.prop(context.scene, "t2t_resolution")
+            col.prop(context.scene, "t2t_art_style")
+            col.separator()
+
+            # bigger button
+            row = col.row()
+            row.scale_y = 1.5
+            row.operator(SendSubmitRequest.bl_idname, text="Submit Task", icon="PLUS")
+
+        # Display a collapsible box for task list
+        col = layout.box().column(align=True)
+        row = col.row()
+        row.prop(
+            context.scene,
+            "t2t_expanded_task_list",
+            icon="TRIA_DOWN" if context.scene.t2t_expanded_task_list else "TRIA_RIGHT",
+            icon_only=True,
+            emboss=False,
+        )
+        row.label(text="Task List")
+        if context.scene.t2t_expanded_task_list:
+            col.operator(
+                RefreshTaskList.bl_idname, text="Refresh Task List", icon="FILE_REFRESH"
+            )
+
+            if len(taskList) == 0:
+                return
+
             for task in taskList:
+                col.separator()
                 if task["status"] in ["SUCCEEDED", "FAILED", "PENDING", "IN_PROGRESS"]:
-                    col.label(text=str(task[content_key]))
+                    row = col.row()
+                    row.label(text=task["name"])
+                    row.label(text=task["art_style"])
+                    row = col.row()
+                    row.label(text=f"Status {task['status']}")
+                    if task["status"] == "IN_PROGRESS":
+                        row.label(text=f"Progress {str(task['progress'])}")
 
-        split = layout.split()
-        col = split.column()
-        col.label(text="Download")
-        for task in taskList:
-            if task["status"] == "SUCCEEDED":
-                downloadButton = col.operator(
-                    AcquireResultsFromRemote.bl_idname, text="Download"
-                )
-                downloadButton.downloadPath = task["model_urls"]["glb"]
-            else:
-                col.label(text=" ")
-        create_col("Task Name", "name")
-        create_col("Art Style", "art_style")
-        create_col("Status", "status")
-        create_col("Progress", "progress")
+                if task["status"] == "SUCCEEDED":
+                    downloadButton = col.operator(
+                        DownloadModel.bl_idname, text="Download", icon="SORT_ASC"
+                    )
+                    downloadButton.downloadPath = task["model_urls"]["glb"]
 
 
-# Create properties shown in the panel
-def RegisterProperties():
+# Create value we will use in all of the windows
+def CreateValue():
+    # The value we will use in text to texture
+    bpy.types.Scene.t2t_expanded_task_settings = bpy.props.BoolProperty(default=True)
+    bpy.types.Scene.t2t_expanded_task_list = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.t2t_object_prompt = bpy.props.StringProperty(
-        name="t2t_object_prompt",
-        description="text_to_texture_object_prompt",
+        name="Object prompt",
+        description="Text to texture object prompt",
         default="",
     )
     bpy.types.Scene.t2t_style_prompt = bpy.props.StringProperty(
-        name="t2t_style_prompt", description="text_to_texture_style_prompt", default=""
+        name="Style prompt", description="Text to texture style prompt", default=""
     )
     bpy.types.Scene.t2t_enable_original_UV = bpy.props.BoolProperty(
-        name="t2t_enable_original_UV",
-        description="text_to_texture_enable_original_UV",
+        name="Enable original UV",
+        description="Text to texture enable original UV",
         default=False,
     )
     bpy.types.Scene.t2t_enable_PBR = bpy.props.BoolProperty(
-        name="t2t_enable_PBR", description="text_to_texture_enable_PBR", default=False
+        name="Enable PBR", description="Text to texture enable PBR", default=False
     )
     bpy.types.Scene.t2t_negative_prompt = bpy.props.StringProperty(
-        name="t2t_negative_prompt",
-        description="text_to_texture_negative_prompt",
+        name="Negative prompt",
+        description="Text to texture negative prompt",
         default="",
     )
-    bpy.types.Scene.t2t_art_syle = bpy.props.EnumProperty(
+    bpy.types.Scene.t2t_art_style = bpy.props.EnumProperty(
+        name="Art Style",
         items=[
             ("realistic", "Realistic", ""),
             ("fake-3d-cartoon", "2.5D Cartoon", ""),
@@ -196,47 +231,55 @@ def RegisterProperties():
             ("realistic-hand-drawn", "Realistic Hand-drawn", ""),
             ("oriental-comic-ink", "Oriental Comic Lnk", ""),
         ],
+        description="Text to texture art style",
+        default="realistic",
     )
     bpy.types.Scene.t2t_resolution = bpy.props.EnumProperty(
+        name="Resolution",
         items=[
             ("1024", "1024", ""),
             ("2048", "2048", ""),
             ("4096", "4096", ""),
-        ]
+        ],
+        description="Text to texture resolution",
+        default="1024",
     )
     bpy.types.Scene.t2t_task_name = bpy.props.StringProperty(
-        name="t2t_task_name",
-        description="text_to_texture_task_name",
+        name="Task Name",
+        description="Text to texture task name",
         default="Meshy_model",
     )
 
 
-def UnRegisterProperties():
+# Delete the value we have created
+def DeleteValue():
     del bpy.types.Scene.t2t_object_prompt
     del bpy.types.Scene.t2t_style_prompt
     del bpy.types.Scene.t2t_enable_original_UV
     del bpy.types.Scene.t2t_enable_PBR
     del bpy.types.Scene.t2t_negative_prompt
-    del bpy.types.Scene.t2t_art_syle
+    del bpy.types.Scene.t2t_art_style
     del bpy.types.Scene.t2t_resolution
     del bpy.types.Scene.t2t_task_name
+    del bpy.types.Scene.t2t_expanded_task_settings
+    del bpy.types.Scene.t2t_expanded_task_list
 
 
 classes = (
-    TextToTexturePanel,
-    SubmitTaskToRemote,
+    MeshyTextToTexture,
+    SendSubmitRequest,
     RefreshTaskList,
-    AcquireResultsFromRemote,
+    DownloadModel,
 )
 
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    RegisterProperties()
+    CreateValue()
 
 
 def unregister():
-    UnRegisterProperties()
+    DeleteValue()
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
