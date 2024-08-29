@@ -45,7 +45,7 @@ class MeshyApi:
     def fetch_model_data(self, page_num=1, search_query=""):
         """Fetch model data from the Meshy API."""
         base_url = "https://api.meshy.ai/public/showcases"
-        params = {"pageNum": page_num, "pageSize": 20, "search": search_query}
+        params = {"pageNum": page_num, "pageSize": 20, "search": search_query, "sortBy": "-public_popularity"}
 
         response = requests.get(base_url, params=params)
         if response.status_code == 200:
@@ -165,7 +165,7 @@ class MeshyLoadThumbnailsOperator(Operator):
 
 class MeshyDownloadModelOperator(Operator):
     bl_idname = "wm.meshy_download_model"
-    bl_label = "Download and Import Model"
+    bl_label = "Import Model"
 
     def execute(self, context):
         props = context.window_manager.meshy_browser
@@ -229,9 +229,8 @@ class MeshyAssetBrowserPanel(Panel):
         # 翻页按钮
         row = layout.row()
         row.enabled = props.page_num > 1
-        row.operator("wm.meshy_prev_page", text="Previous Page", icon="TRIA_LEFT")
+        row.operator("wm.meshy_prev_page", text="Prev Page", icon="TRIA_LEFT")
 
-        row = layout.row()
         row.enabled = props.has_next_page
         row.operator("wm.meshy_next_page", text="Next Page", icon="TRIA_RIGHT")
 
@@ -252,9 +251,12 @@ class MeshyAssetBrowserPanel(Panel):
                 layout.label(text=f"Author: {selected_model.author}", icon="USER")
 
                 # 下载模型按钮
-                layout.operator(
+
+                row = layout.row()
+                row.scale_y = 1.5
+                row.operator(
                     "wm.meshy_download_model",
-                    text="Download and Import Model",
+                    text="Import Model",
                     icon="IMPORT",
                 )
 
