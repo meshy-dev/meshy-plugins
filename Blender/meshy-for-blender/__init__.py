@@ -3,7 +3,7 @@ bl_info = {
     "author": "Meshy",
     "description": "Meshy for Blender",
     "blender": (3, 3, 0),
-    "version": (0, 2, 0),
+    "version": (0, 2, 1),
     "category": "3D View",
     "location": "View3D",
 }
