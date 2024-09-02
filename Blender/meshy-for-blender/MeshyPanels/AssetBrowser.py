@@ -14,7 +14,6 @@ from bpy.types import Operator, Panel, PropertyGroup
 import bpy.utils.previews
 from collections import OrderedDict
 
-# 初始化 preview_collection
 preview_collection = {"meshy": bpy.utils.previews.new()}
 ongoingSearches = set([])
 
@@ -79,9 +78,7 @@ class MeshyBrowserProps(PropertyGroup):
     search_results = {}
     page_num: IntProperty(name="Page Number", default=1)
     has_next_page: BoolProperty(name="Has Next Page", default=False)
-    is_loading: BoolProperty(
-        name="Is Loading", default=False
-    )  # 新增的属性，用于显示加载状态
+    is_loading: BoolProperty(name="Is Loading", default=False)
 
 
 class MeshySearchOperator(Operator):
@@ -90,8 +87,8 @@ class MeshySearchOperator(Operator):
 
     def execute(self, context):
         props = context.window_manager.meshy_browser
-        props.is_loading = True  # 设置为加载中状态
-        bpy.context.window.cursor_set("WAIT")  # 更改鼠标指针为加载状态
+        props.is_loading = True
+        bpy.context.window.cursor_set("WAIT")
 
         search_thread = threading.Thread(target=self.search_in_thread, args=(context,))
         search_thread.start()
@@ -102,10 +99,8 @@ class MeshySearchOperator(Operator):
         api = MeshyApi()
         user_input = props.user_input
 
-        # 执行搜索并更新模型数据
         api.fetch_model_data(page_num=api.page_num, search_query=user_input)
 
-        # 在主线程中更新 Blender 数据
         def update_results():
             props.search_results.clear()
             for model_id, model in api.models.items():
@@ -113,13 +108,11 @@ class MeshySearchOperator(Operator):
             props.has_next_page = api.has_next_page
             props.page_num = api.page_num
 
-            props.is_loading = False  # 加载完成，更新状态
-            bpy.context.window.cursor_set("DEFAULT")  # 恢复默认鼠标指针
+            props.is_loading = False
+            bpy.context.window.cursor_set("DEFAULT")
 
-            # 加载缩略图
             bpy.ops.wm.meshy_load_thumbnails("INVOKE_DEFAULT")
 
-        # 将更新操作放入Blender主线程中
         bpy.app.timers.register(update_results, first_interval=0.1)
 
 
@@ -129,8 +122,8 @@ class MeshyNextPageOperator(Operator):
 
     def execute(self, context):
         props = context.window_manager.meshy_browser
-        props.is_loading = True  # 设置为加载中状态
-        bpy.context.window.cursor_set("WAIT")  # 更改鼠标指针为加载状态
+        props.is_loading = True
+        bpy.context.window.cursor_set("WAIT")
 
         next_page_thread = threading.Thread(
             target=self.next_page_in_thread, args=(context,)
@@ -150,10 +143,9 @@ class MeshyNextPageOperator(Operator):
             props.has_next_page = api.has_next_page
             props.page_num = api.page_num
 
-            props.is_loading = False  # 加载完成，更新状态
-            bpy.context.window.cursor_set("DEFAULT")  # 恢复默认鼠标指针
+            props.is_loading = False
+            bpy.context.window.cursor_set("DEFAULT")
 
-            # 加载缩略图
             bpy.ops.wm.meshy_load_thumbnails("INVOKE_DEFAULT")
 
         bpy.app.timers.register(update_results, first_interval=0.1)
@@ -165,8 +157,8 @@ class MeshyPrevPageOperator(Operator):
 
     def execute(self, context):
         props = context.window_manager.meshy_browser
-        props.is_loading = True  # 设置为加载中状态
-        bpy.context.window.cursor_set("WAIT")  # 更改鼠标指针为加载状态
+        props.is_loading = True
+        bpy.context.window.cursor_set("WAIT")
 
         prev_page_thread = threading.Thread(
             target=self.prev_page_in_thread, args=(context,)
@@ -186,10 +178,9 @@ class MeshyPrevPageOperator(Operator):
             props.has_next_page = api.has_next_page
             props.page_num = api.page_num
 
-            props.is_loading = False  # 加载完成，更新状态
-            bpy.context.window.cursor_set("DEFAULT")  # 恢复默认鼠标指针
+            props.is_loading = False
+            bpy.context.window.cursor_set("DEFAULT")
 
-            # 加载缩略图
             bpy.ops.wm.meshy_load_thumbnails("INVOKE_DEFAULT")
 
         bpy.app.timers.register(update_results, first_interval=0.1)
@@ -223,11 +214,8 @@ class MeshyDownloadModelOperator(Operator):
 
         if selected_model_name in props.search_results:
             model = props.search_results[selected_model_name]
-            model_path = os.path.join(
-                bpy.app.tempdir, f"{model.name}.glb"
-            )  # 假设模型为 .glb 格式
+            model_path = os.path.join(bpy.app.tempdir, f"{model.name}.glb")
 
-            # 下载模型文件
             response = requests.get(model.model_url, stream=True)
             if response.status_code == 200:
                 with open(model_path, "wb") as f:
@@ -273,15 +261,12 @@ class MeshyAssetBrowserPanel(Panel):
         if not preview_collection["meshy"] and not props.is_loading:
             layout.label(text="No results found")
 
-        # 翻页按钮（同一行，独立控制）
         row = layout.row()
 
-        # 前一页按钮
         subrow = row.row()
         subrow.enabled = props.page_num > 1
         subrow.operator("wm.meshy_prev_page", text="Prev Page", icon="TRIA_LEFT")
 
-        # 下一页按钮
         subrow = row.row()
         subrow.enabled = props.has_next_page
         subrow.operator("wm.meshy_next_page", text="Next Page", icon="TRIA_RIGHT")
