@@ -129,6 +129,7 @@ class MeshyTextToModel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Meshy"
+    bl_options = {"DEFAULT_CLOSED"}
 
     # Draw the panel UI
     def draw(self, context):
