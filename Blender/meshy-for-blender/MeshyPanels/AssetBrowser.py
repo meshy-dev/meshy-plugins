@@ -38,9 +38,7 @@ class MeshyApi:
             "SCRIPTS", path="meshy_thumbnails", create=True
         )
 
-    def fetch_model_data(
-        self, page_num=1, search_query="", sort_by="-created_at"
-    ):
+    def fetch_model_data(self, page_num=1, search_query="", sort_by="-created_at"):
         base_url = "https://api.meshy.ai/public/showcases"
         params = {
             "pageNum": page_num,
