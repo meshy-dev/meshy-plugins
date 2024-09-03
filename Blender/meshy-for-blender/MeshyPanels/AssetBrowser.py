@@ -38,13 +38,15 @@ class MeshyApi:
             "SCRIPTS", path="meshy_thumbnails", create=True
         )
 
-    def fetch_model_data(self, page_num=1, search_query=""):
+    def fetch_model_data(
+        self, page_num=1, search_query="", sort_by="-created_at"
+    ):
         base_url = "https://api.meshy.ai/public/showcases"
         params = {
             "pageNum": page_num,
             "pageSize": 24,
             "search": search_query,
-            "sortBy": "-public_popularity",
+            "sortBy": sort_by,
         }
 
         response = requests.get(base_url, params=params)
@@ -79,6 +81,16 @@ class MeshyBrowserProps(PropertyGroup):
     page_num: IntProperty(name="Page Number", default=1)
     has_next_page: BoolProperty(name="Has Next Page", default=False)
     is_loading: BoolProperty(name="Is Loading", default=False)
+    sort_by: EnumProperty(
+        name="Sort by",
+        items=[
+            ("-created_at", "Newest", ""),
+            ("-public_popularity", "Trending", ""),
+            ("-downloads", "Most Downloaded", ""),
+        ],
+        description="Sort by",
+        default="-created_at",
+    )
 
 
 class MeshySearchOperator(Operator):
@@ -98,8 +110,11 @@ class MeshySearchOperator(Operator):
         props = context.window_manager.meshy_browser
         api = MeshyApi()
         user_input = props.user_input
+        sort_by = props.sort_by
 
-        api.fetch_model_data(page_num=api.page_num, search_query=user_input)
+        api.fetch_model_data(
+            page_num=api.page_num, search_query=user_input, sort_by=sort_by
+        )
 
         def update_results():
             props.search_results.clear()
@@ -220,7 +235,7 @@ class MeshyDownloadModelOperator(Operator):
             if response.status_code == 200:
                 with open(model_path, "wb") as f:
                     f.write(response.content)
-                self.import_model(model_path)
+                self.import_model(model_path, model.name)
                 self.report(
                     {"INFO"},
                     f"Model {model.name} downloaded and imported successfully.",
@@ -232,8 +247,12 @@ class MeshyDownloadModelOperator(Operator):
 
         return {"FINISHED"}
 
-    def import_model(self, model_path):
+    def import_model(self, model_path, model_name):
+        print(f"Importing model from {model_path}")
+        print(f"Model name: {model_name}")
         bpy.ops.import_scene.gltf(filepath=model_path)
+        bpy.context.active_object.name = model_name
+        bpy.context.active_object.data.name = model_name
 
 
 class MeshyAssetBrowserPanel(Panel):
@@ -248,7 +267,11 @@ class MeshyAssetBrowserPanel(Panel):
         props = context.window_manager.meshy_browser
 
         layout.prop(props, "user_input", text="Search")
-        layout.operator("wm.meshy_search", text="Search")
+        layout.prop(props, "sort_by", text="Sort by")
+
+        row = layout.row()
+        row.enabled = not props.is_loading
+        row.operator("wm.meshy_search", text="Search")
 
         if props.is_loading:
             layout.label(text="Loading... Please wait.", icon="INFO")
@@ -264,11 +287,11 @@ class MeshyAssetBrowserPanel(Panel):
         row = layout.row()
 
         subrow = row.row()
-        subrow.enabled = props.page_num > 1
+        subrow.enabled = props.page_num > 1 and not props.is_loading
         subrow.operator("wm.meshy_prev_page", text="Prev Page", icon="TRIA_LEFT")
 
         subrow = row.row()
-        subrow.enabled = props.has_next_page
+        subrow.enabled = props.has_next_page and not props.is_loading
         subrow.operator("wm.meshy_next_page", text="Next Page", icon="TRIA_RIGHT")
 
         if props.search_results:
