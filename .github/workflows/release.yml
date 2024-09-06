@@ -13,6 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up tag name
+        id: tag_name
+        run: echo "TAG_NAME=v$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
       - name: Create release artifact
         run: zip -r blender_plugin.zip Blender  # 仅打包 `Blender` 文件夹为 `blender_plugin.zip`
 
@@ -20,8 +24,8 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.sha }}  # 使用提交的 SHA 作为标签
-          release_name: Release ${{ github.sha }}
+          tag_name: ${{ env.TAG_NAME }}  # 使用当前日期时间作为标签名
+          release_name: Release ${{ env.TAG_NAME }}
           body: |
             自动发布的新版本。
           draft: false
