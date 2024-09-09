@@ -1,4 +1,4 @@
-name: Manual Release
+name: Auto Release
 
 on:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
           echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
 
       - name: Create release artifact
-        run: zip -r blender_plugin.zip Blender  # 仅打包 `Blender` 文件夹为 `blender_plugin.zip`
+        run: zip -r blender_plugin.zip Blender 
 
       - name: Create GitHub Release
         id: create_release
