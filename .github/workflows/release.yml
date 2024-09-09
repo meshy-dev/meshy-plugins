@@ -42,7 +42,7 @@ jobs:
           echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
 
       - name: Create release artifact
-        run: zip -r blender_plugin.zip Blender 
+        run: zip -r blender_plugin.zip Blender
 
       - name: Create GitHub Release
         id: create_release
