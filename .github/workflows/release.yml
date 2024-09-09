@@ -1,9 +1,21 @@
 name: Auto Release
 
 on:
-  push:
-    branches:
-      - main  # 当推送到 `main` 分支时触发
+  workflow_dispatch:
+    inputs:
+      release_stage:
+        type: choice
+        description: Release Stage (alpha, beta, rc, gold)
+        required: true
+        options:
+          - alpha
+          - beta
+          - rc
+          - gold
+      version:
+        description: Custom version (e.g., 0.2.2)
+        default: "0.2.2"
+        required: true
 
 jobs:
   build:
@@ -13,9 +25,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up tag name
-        id: tag_name
-        run: echo "TAG_NAME=v$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+      - name: Set up version and release stage
+        id: set_version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          RELEASE_STAGE="${{ github.event.inputs.release_stage }}"
+
+          FULL_VERSION="$VERSION-$RELEASE_STAGE"
+
+          echo "Full version: $FULL_VERSION"
+
+          echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
 
       - name: Create release artifact
         run: zip -r blender_plugin.zip Blender  # 仅打包 `Blender` 文件夹为 `blender_plugin.zip`
@@ -24,10 +44,10 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ env.TAG_NAME }}  # 使用当前日期时间作为标签名
-          release_name: Release ${{ env.TAG_NAME }}
+          tag_name: v${{ env.FULL_VERSION }}  # 使用带发布阶段的版本号作为标签名
+          release_name: Meshy Blender Addon v${{ env.FULL_VERSION }}  # 使用带发布阶段的版本号作为发布名称
           body: |
-            自动发布的新版本。
+            Release Meshy Blender Addon v${{ env.FULL_VERSION }}。
           draft: false
           prerelease: false
         env:
