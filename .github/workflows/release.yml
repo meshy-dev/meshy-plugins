@@ -1,4 +1,4 @@
-name: Auto Release
+name: Manual Release
 
 on:
   workflow_dispatch:
@@ -31,23 +31,27 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           RELEASE_STAGE="${{ github.event.inputs.release_stage }}"
 
-          FULL_VERSION="$VERSION-$RELEASE_STAGE"
+          if [ "$RELEASE_STAGE" = "gold" ]; then
+            FULL_VERSION="$VERSION"
+          else
+            FULL_VERSION="$VERSION-$RELEASE_STAGE"
+          fi
 
           echo "Full version: $FULL_VERSION"
 
           echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
 
       - name: Create release artifact
-        run: zip -r blender_plugin.zip Blender
+        run: zip -r blender_plugin.zip Blender  # 仅打包 `Blender` 文件夹为 `blender_plugin.zip`
 
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         with:
           tag_name: v${{ env.FULL_VERSION }}
-          release_name: Meshy Blender Addon v${{inputs.version}}${{ inputs.release_stage == 'gold' && '' || format('-{0}', inputs.release_stage) }}
+          release_name: Meshy Blender Addon v${{ env.FULL_VERSION }}
           body: |
-            Release Meshy Blender Addon v${{ env.FULL_VERSION }}。
+            Release Meshy Blender Addon v${{ env.FULL_VERSION }}
           draft: false
           prerelease: ${{ inputs.release_stage != 'gold' && 'true' || 'false' }}
         env:
