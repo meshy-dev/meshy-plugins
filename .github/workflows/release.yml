@@ -42,7 +42,8 @@ jobs:
           echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
 
       - name: Create release artifact
-        run: zip -r blender_plugin.zip Blender
+        run: |
+          zip -r "meshy-blender-addon-v${{ env.FULL_VERSION }}.zip" Blender
 
       - name: Create GitHub Release
         id: create_release
@@ -61,8 +62,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./blender_plugin.zip
-          asset_name: blender_plugin.zip
+          asset_path: ./meshy-blender-addon-v${{ env.FULL_VERSION }}.zip
+          asset_name: meshy-blender-addon-v${{ env.FULL_VERSION }}.zip
           asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
