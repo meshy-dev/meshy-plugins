@@ -1,0 +1,69 @@
+name: Auto Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_stage:
+        type: choice
+        description: Release Stage (alpha, beta, rc, gold)
+        required: true
+        options:
+          - alpha
+          - beta
+          - rc
+          - gold
+      version:
+        description: Custom version (e.g., 0.2.2)
+        default: "0.2.2"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up version and release stage
+        id: set_version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          RELEASE_STAGE="${{ github.event.inputs.release_stage }}"
+
+          if [ "$RELEASE_STAGE" = "gold" ]; then
+            FULL_VERSION="$VERSION"
+          else
+            FULL_VERSION="$VERSION-$RELEASE_STAGE"
+          fi
+
+          echo "Full version: $FULL_VERSION"
+
+          echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
+
+      - name: Create release artifact
+        run: |
+          zip -r "meshy-blender-addon-v${{ env.FULL_VERSION }}.zip" Blender
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ env.FULL_VERSION }}
+          release_name: Meshy Blender Addon v${{ env.FULL_VERSION }}
+          body: |
+            Release Meshy Blender Addon v${{ env.FULL_VERSION }}
+          draft: false
+          prerelease: ${{ inputs.release_stage != 'gold' && 'true' || 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./meshy-blender-addon-v${{ env.FULL_VERSION }}.zip
+          asset_name: meshy-blender-addon-v${{ env.FULL_VERSION }}.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
