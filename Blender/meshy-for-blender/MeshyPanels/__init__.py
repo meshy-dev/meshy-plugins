@@ -1,6 +1,7 @@
 import bpy
 from . import TextToTexturePanel
 from . import TextToModelPanel
+from . import ImageToModelPanel
 from . import AssetBrowser
 
 
@@ -22,9 +23,11 @@ def register():
     AssetBrowser.register()
     TextToTexturePanel.register()
     TextToModelPanel.register()
+    ImageToModelPanel.register()
 
 
 def unregister():
+    ImageToModelPanel.unregister()
     TextToModelPanel.unregister()
     TextToTexturePanel.unregister()
     AssetBrowser.unregister()
